@@ -437,17 +437,29 @@ function setStep(n,msg,prog){
 }
 
 // ── RUN DETECTION ─────────────────────────────────────
-function runDetection(){
-  if(!selectedFile)return;
-  var f=selectedFile,sizeMB=(f.size/1048576).toFixed(2);
-  hide('app-page');show('loading-page');
-  setStep(0,'Reading: '+f.name+' ('+sizeMB+' MB)',10);
-  var reader=new FileReader();
-  reader.onload=function(e){processCSV(e.target.result,f.name,sizeMB);};
-  reader.onerror=function(){hide('loading-page');show('app-page');toast('Could not read file');};
-  reader.readAsText(f);
-}
+function runDetection() {
+  if (!selectedFile) return;
 
+  const formData = new FormData();
+  formData.append("file", selectedFile);
+
+  fetch("https://frauddetection-twa1.onrender.com/api/detect", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log(data);
+    results = data;
+    renderResults();
+    renderAgent();
+    showPage("results");
+  })
+  .catch(err => {
+    console.error(err);
+    toast("Backend error");
+  });
+}
 // ── MAIN CSV PROCESSOR ────────────────────────────────
 // Streaming design: never stores raw[] array. Three lightweight line-by-line passes
 // over the text string using index scanning — no split('\n') mega-array either.

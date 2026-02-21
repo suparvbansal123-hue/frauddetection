@@ -777,6 +777,19 @@ def parquet_status():
     })
 
 
+@app.route("/")
+def home():
+    return {
+        "message": "FraudShield AI Backend is running 🚀",
+        "status": "healthy",
+        "endpoints": [
+            "/health",
+            "/api/detect",
+            "/api/sample",
+            "/api/monitor"
+        ]
+    }
+    
 # ══════════════════════════════════════════════════════════════════════════════
 if __name__ == '__main__':
     # ── Try loading Parquet at startup ────────────────────────────────────────

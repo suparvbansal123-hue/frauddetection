@@ -443,7 +443,7 @@ function runDetection() {
   const formData = new FormData();
   formData.append("file", selectedFile);
 
-  fetch("https://frauddetection-twa1.onrender.com/api/detect", {
+  fetch("https://frauddetectorog.web.app/api/detect", {
     method: "POST",
     body: formData
   })

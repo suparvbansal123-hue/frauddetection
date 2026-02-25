@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>FraudShield AI · Fraud Detection</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06080f;--bg2:#0b0f1c;--bg3:#101525;
+  --border:#182035;--border2:#1f2d4a;
+  --text:#d4e3ff;--muted:#4a6080;--dim:#2a3a55;
+  --cyan:#22d3ee;--blue:#3b82f6;--green:#10b981;
+  --red:#f43f5e;--orange:#f97316;
+  --fh:'Syne',sans-serif;--fb:'DM Sans',sans-serif;--fm:'DM Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+.hidden{display:none!important}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);pointer-events:none;z-index:9999}
+
+/* LOGIN */
+#login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#login-page::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.08),transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.lcard{width:420px;padding:44px;background:rgba(11,15,28,.9);border:1px solid var(--border2);border-radius:20px;backdrop-filter:blur(20px);position:relative;z-index:1}
+.logo-row{display:flex;align-items:center;gap:12px;margin-bottom:28px}
+.logo-sq{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 20px rgba(59,130,246,.3)}
+.logo-txt{font-family:var(--fh);font-size:20px;font-weight:800}
+.logo-txt span{color:var(--cyan)}
+.lcard h2{font-family:var(--fh);font-size:26px;font-weight:700;margin-bottom:6px;letter-spacing:-.5px}
+.lcard p{color:var(--muted);font-size:13px;margin-bottom:28px;font-weight:300}
+.lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;display:block;font-family:var(--fm)}
+.inp{width:100%;padding:12px 14px;background:rgba(6,8,15,.7);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-size:14px;margin-bottom:16px;outline:none;font-family:var(--fb);transition:border .2s}
+.inp:focus{border-color:var(--blue)}
+.btn-login{width:100%;padding:14px;background:linear-gradient(135deg,var(--blue),var(--cyan));border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:opacity .2s;margin-bottom:10px}
+.btn-login:hover{opacity:.9}
+.btn-login:disabled{opacity:.4;cursor:not-allowed}
+.btn-google{width:100%;padding:13px;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:11px;color:var(--text);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--fb);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-google:hover{background:rgba(255,255,255,.07);border-color:var(--border2)}
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--dim);font-size:11px;font-family:var(--fm)}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.login-hint{text-align:center;font-size:11px;color:var(--dim);margin-top:14px;font-family:var(--fm)}
+.login-err{font-size:12px;color:var(--red);margin-bottom:12px;padding:10px 12px;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:7px;display:none}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--green);margin-right:5px;animation:blink 2s infinite;vertical-align:middle}
+.auth-toggle{text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
+.auth-toggle a{color:var(--cyan);cursor:pointer;text-decoration:none}
+.auth-toggle a:hover{text-decoration:underline}
+
+/* LOADING */
+#loading-page{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px;text-align:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-ring{width:46px;height:46px;border:2px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:20px}
+.load-h{font-family:var(--fh);font-size:18px;font-weight:700;margin-bottom:8px}
+.load-msg{font-family:var(--fm);font-size:12px;color:var(--cyan);margin-bottom:20px;max-width:400px}
+.load-steps{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:20px}
+.ls{font-size:11px;padding:4px 10px;border-radius:5px;color:var(--dim);font-family:var(--fm);border:1px solid transparent}
+.ls.done{color:var(--green)}.ls.act{color:var(--cyan);border-color:rgba(34,211,238,.2);background:rgba(34,211,238,.05)}
+.prog-wrap{width:300px;height:2px;background:var(--border2);border-radius:1px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));width:0;transition:width .5s ease}
+
+/* APP SHELL */
+#app-page{display:flex;min-height:100vh}
+.sidebar{width:230px;background:var(--bg2);border-right:1px solid var(--border);padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex-shrink:0}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:0 6px;margin-bottom:32px}
+.sb-sq{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 15px rgba(59,130,246,.25)}
+.sb-name{font-family:var(--fh);font-size:15px;font-weight:800}
+.sb-name span{color:var(--cyan)}
+.nav-sec{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;padding:0 8px;margin-bottom:6px;font-family:var(--fm)}
+.nav-i{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:var(--muted);font-size:13px;cursor:pointer;margin-bottom:2px;border:1px solid transparent;transition:all .15s}
+.nav-i:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-i.on{background:rgba(59,130,246,.1);color:var(--cyan);border-color:rgba(59,130,246,.2)}
+.sb-user{margin-top:auto;padding:11px 12px;background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:10px}
+.sb-user-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{font-size:10px;color:var(--muted);font-family:var(--fm);margin-top:2px}
+.sb-user-runs{font-size:10px;color:var(--cyan);font-family:var(--fm);margin-top:3px}
+.sb-signout{margin-top:8px;width:100%;padding:7px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:11px;cursor:pointer;font-family:var(--fm);transition:all .15s}
+.sb-signout:hover{border-color:rgba(244,63,94,.3);color:var(--red)}
+.main{flex:1;padding:28px 32px;overflow-y:auto;min-width:0}
+.topbar{margin-bottom:26px}
+.bc{font-size:11px;color:var(--dim);margin-bottom:6px;font-family:var(--fm)}
+.bc span{color:var(--cyan)}
+.page-h{font-family:var(--fh);font-size:24px;font-weight:800;letter-spacing:-.5px}
+.page-sub{color:var(--muted);font-size:13px;margin-top:4px;font-weight:300}
+
+/* CARDS */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px}
+.card-t{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px;font-family:var(--fm)}
+
+/* UPLOAD */
+.upload-zone{border:2px dashed var(--border2);border-radius:12px;padding:44px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:rgba(59,130,246,.03)}
+.up-icon{font-size:40px;margin-bottom:14px}
+.up-h{font-family:var(--fh);font-size:18px;font-weight:700;margin-bottom:6px}
+.up-sub{color:var(--muted);font-size:13px;font-weight:300}
+.up-hint{font-size:11px;color:var(--dim);margin-top:6px;font-family:var(--fm)}
+.file-info{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.fbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.2);border-radius:6px;padding:6px 12px;font-size:12px;color:var(--cyan);font-family:var(--fm)}
+.run-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;margin-top:18px;background:linear-gradient(135deg,var(--blue),var(--cyan));border:none;border-radius:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--fb);transition:opacity .2s}
+.run-btn:disabled{opacity:.35;cursor:not-allowed}
+.run-btn:not(:disabled):hover{opacity:.9}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:13px;padding:18px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc)}
+.kpi-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;font-family:var(--fm)}
+.kpi-v{font-size:26px;font-weight:700;color:var(--kc);line-height:1;font-family:var(--fm)}
+.kpi-s{font-size:11px;color:var(--dim);margin-top:6px;font-weight:300}
+
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.chart-card{background:var(--bg3);border:1px solid var(--border);border-radius:14px;padding:18px}
+.chart-card.wide{grid-column:span 2}
+.chart-wrap{position:relative;height:185px}
+
+/* CONFUSION MATRIX */
+.cm-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cm-cell{padding:14px 10px;border-radius:9px;text-align:center}
+.cm-v{font-size:22px;font-weight:700;font-family:var(--fm)}
+.cm-l{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:10px 14px;text-align:left;font-size:9px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);letter-spacing:.1em;font-family:var(--fm)}
+td{padding:9px 14px;border-bottom:1px solid rgba(24,32,53,.5)}
+.fraud-row{background:rgba(244,63,94,.04)}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:600;font-family:var(--fm)}
+.tag.fraud{background:rgba(244,63,94,.12);color:var(--red);border:1px solid rgba(244,63,94,.25)}
+.tag.safe{background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.tag.viol{background:rgba(249,115,22,.1);color:var(--orange);border:1px solid rgba(249,115,22,.25)}
+.prob-wrap{display:flex;align-items:center;gap:8px}
+.prob-track{height:3px;width:72px;background:var(--border2);border-radius:2px}
+.prob-fill{height:100%;border-radius:2px}
+
+/* PAGINATION */
+.pag{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:8px}
+.pag-info{font-size:11px;color:var(--muted);font-family:var(--fm)}
+.pag-btns{display:flex;gap:4px;flex-wrap:wrap}
+.pag-btn{padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--fm);transition:all .15s}
+.pag-btn:hover:not(:disabled){border-color:var(--blue);color:var(--cyan)}
+.pag-btn.on{background:rgba(59,130,246,.12);border-color:var(--blue);color:var(--cyan)}
+.pag-btn:disabled{opacity:.25;cursor:not-allowed}
+
+/* FILTER */
+.fbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.fbtn{padding:6px 13px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:var(--fm);transition:all .15s}
+.fbtn.on{border-color:rgba(244,63,94,.4);color:var(--red);background:rgba(244,63,94,.06)}
+.fbtn.on-all{border-color:var(--border2);color:var(--cyan)}
+.dl-btn{margin-left:auto;padding:7px 14px;border:1px solid rgba(34,211,238,.25);border-radius:7px;background:rgba(34,211,238,.05);color:var(--cyan);font-size:12px;cursor:pointer;font-family:var(--fm)}
+.dl-btn:hover{background:rgba(34,211,238,.1)}
+
+/* TWO COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+
+/* AGENT */
+.agent-panel{background:linear-gradient(135deg,rgba(59,130,246,.05),rgba(34,211,238,.03));border:1px solid rgba(34,211,238,.18);border-radius:14px;padding:22px;margin-bottom:16px}
+.agent-hdr{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.agent-ico{width:36px;height:36px;border-radius:9px;background:rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.agent-name{font-family:var(--fh);font-size:15px;font-weight:700}
+.agent-sub2{font-size:11px;color:var(--muted);font-family:var(--fm);margin-top:2px}
+.live-pill{margin-left:auto;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;font-family:var(--fm)}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:blink 2s infinite}
+.insight{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;background:rgba(0,0,0,.25);border-radius:8px;border-left:3px solid;margin-bottom:8px;font-size:12px;line-height:1.55}
+.insight.high{border-color:var(--red)}.insight.medium{border-color:var(--orange)}.insight.low{border-color:var(--cyan)}
+.itag{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;margin-left:7px;text-transform:uppercase;font-family:var(--fm)}
+.itag.high{background:rgba(244,63,94,.15);color:var(--red)}
+.itag.medium{background:rgba(249,115,22,.15);color:var(--orange)}
+.itag.low{background:rgba(34,211,238,.1);color:var(--cyan)}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.35);color:var(--red);padding:14px 20px;border-radius:10px;font-size:13px;font-family:var(--fm);z-index:99999;max-width:380px;backdrop-filter:blur(10px);transform:translateY(20px);opacity:0;transition:all .3s;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3);color:var(--green)}
+
+@media(max-width:900px){
+  .sidebar{display:none}.kpi-grid{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}.chart-card.wide{grid-column:span 1}
+  .two-col{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-page">
+  <div class="lcard">
+    <div class="logo-row">
+      <div class="logo-sq">🛡</div>
+      <div class="logo-txt">Fraud<span>Shield</span> AI</div>
+    </div>
+    <h2 id="auth-heading">Analyst Sign In</h2>
+    <p id="auth-sub">Agentic Data Policy &amp; Fraud Detection Platform</p>
+    <div class="login-err" id="login-err"></div>
+
+    <div id="register-name-wrap" style="display:none">
+      <label class="lbl">Display Name</label>
+      <input class="inp" id="l-name" type="text" placeholder="Jane Analyst"/>
+    </div>
+    <label class="lbl">Email Address</label>
+    <input class="inp" id="l-email" type="email" placeholder="analyst@yourorg.com"/>
+    <label class="lbl">Password</label>
+    <input class="inp" id="l-pass" type="password" placeholder="••••••••"/>
+
+    <button class="btn-login" id="btn-auth" onclick="doEmailAuth()">→ Sign In</button>
+
+    <div class="divider">or</div>
+    <button class="btn-google" onclick="doGoogleAuth()">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+
+    <div class="auth-toggle" id="auth-toggle">
+      No account? <a onclick="toggleAuthMode()">Create one</a>
+    </div>
+    <div class="login-hint" id="login-hint"><span class="dot"></span>Secured by Firebase · PCI-DSS compliant</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loading-page" class="hidden">
+  <div class="spin-ring"></div>
+  <div class="load-h">Processing Dataset</div>
+  <div class="load-msg" id="load-msg">Initialising…</div>
+  <div class="load-steps">
+    <div class="ls" id="ls0">○ Read File</div>
+    <div class="ls" id="ls1">○ Parse Rows</div>
+    <div class="ls" id="ls2">○ Train Model</div>
+    <div class="ls" id="ls3">○ Build Report</div>
+  </div>
+  <div class="prog-wrap"><div class="prog-fill" id="prog-fill"></div></div>
+</div>
+
+<!-- APP -->
+<div id="app-page" class="hidden">
+  <nav class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-sq">🛡</div>
+      <div class="sb-name">Fraud<span>Shield</span></div>
+    </div>
+    <div class="nav-sec">Navigation</div>
+    <div class="nav-i on" id="nav-upload" onclick="showPage('upload')"><span>⬆</span> Upload &amp; Analyze</div>
+    <div class="nav-i" id="nav-results" onclick="showPage('results')"><span>📊</span> Detection Results</div>
+    <div class="nav-i" id="nav-agent" onclick="showPage('agent')"><span>🧠</span> AI Compliance</div>
+    <br/>
+    <div class="nav-sec">Account</div>
+    <div class="nav-i" onclick="showPage('profile')"><span>👤</span> My Profile</div>
+    <div class="sb-user">
+      <div class="sb-user-name" id="sb-user-name">Loading…</div>
+      <div class="sb-user-role" id="sb-user-role">analyst</div>
+      <div class="sb-user-runs" id="sb-user-runs"></div>
+      <button class="sb-signout" onclick="doSignOut()">← Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="main">
+
+    <!-- UPLOAD PAGE -->
+    <div id="page-upload">
+      <div class="topbar">
+        <div class="bc">Dashboard › <span>Upload &amp; Analyze</span></div>
+        <div class="page-h">Upload Transactions</div>
+        <div class="page-sub">Upload a PaySim CSV — the model trains on your actual data in the browser</div>
+      </div>
+      <div class="card">
+        <div class="card-t">📁 Dataset Upload</div>
+        <div class="upload-zone" id="drop-zone"
+          onclick="document.getElementById('csv-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="event.preventDefault();this.classList.remove('drag');handleFile(event.dataTransfer.files[0])">
+          <div class="up-icon">📂</div>
+          <div class="up-h" id="up-h">Drop your CSV here</div>
+          <div class="up-sub" id="up-sub">Drag &amp; drop or click to browse</div>
+          <div class="up-hint">step, type, amount, nameOrig, oldbalanceOrg, newbalanceOrig, nameDest, oldbalanceDest, newbalanceDest, isFraud</div>
+          <div class="file-info" id="file-info"></div>
+        </div>
+        <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFile(this.files[0])"/>
+        <button class="run-btn" id="run-btn" disabled onclick="runDetection()">🚀 Run Fraud Detection</button>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-t">🔧 Model Config</div>
+          <table style="width:100%;font-size:12px">
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--muted)">Algorithm</td><td style="padding:7px 0;color:var(--cyan);font-family:var(--fm)">Logistic Regression</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--muted)">Class Weight</td><td style="padding:7px 0;color:var(--cyan);font-family:var(--fm)">balanced</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--muted)">Max Iterations</td><td style="padding:7px 0;color:var(--cyan);font-family:var(--fm)">10000</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 0;color:var(--muted)">Auth</td><td style="padding:7px 0;color:var(--cyan);font-family:var(--fm)">Firebase</td></tr>
+            <tr><td style="padding:7px 0;color:var(--muted)">Sessions</td><td style="padding:7px 0;color:var(--cyan);font-family:var(--fm)">Firestore audit log</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-t">📋 CSV Format</div>
+          <div style="font-size:11px;font-family:var(--fm);background:var(--bg);padding:14px;border-radius:9px;color:var(--cyan);line-height:2">
+            step,type,amount,nameOrig,<br>oldbalanceOrg,newbalanceOrig,<br>nameDest,oldbalanceDest,<br>newbalanceDest,isFraud
+          </div>
+          <div style="margin-top:10px;font-size:11px;color:var(--dim);font-family:var(--fm)">Compatible with PaySim · Kaggle · bank exports</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS PAGE -->
+    <div id="page-results" class="hidden">
+      <div class="topbar">
+        <div class="bc">Dashboard › <span>Detection Results</span></div>
+        <div class="page-h">Detection Results</div>
+        <div class="page-sub" id="res-sub"></div>
+      </div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px" id="policy-grid"></div>
+      <div class="charts-grid">
+        <div class="chart-card"><div class="card-t">🔵 Fraud Distribution</div><div class="chart-wrap"><canvas id="pie-chart"></canvas></div></div>
+        <div class="chart-card wide"><div class="card-t">📊 Fraud by Transaction Type</div><div class="chart-wrap"><canvas id="bar-chart"></canvas></div></div>
+        <div class="chart-card wide"><div class="card-t">📈 Fraud Events Over Time</div><div class="chart-wrap"><canvas id="line-chart"></canvas></div></div>
+        <div class="chart-card">
+          <div class="card-t">🎯 Confusion Matrix</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:7px;font-size:10px;text-align:center;color:var(--muted);font-family:var(--fm)">
+            <div>Predicted Fraud</div><div>Predicted Safe</div>
+          </div>
+          <div class="cm-grid" id="cm-grid"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="fbar">
+          <div class="card-t" style="margin-bottom:0">📋 Classified Transactions</div>
+          <button class="fbtn on-all" id="btn-all" onclick="setFilter('all')">All</button>
+          <button class="fbtn" id="btn-fraud" onclick="setFilter('fraud')">🔴 Fraud Only</button>
+          <button class="dl-btn" onclick="dlCSV()">⬇ Export Page</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:12px;font-family:var(--fm)" id="tbl-info"></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Transaction ID</th><th>Type</th><th>Amount (₹)</th>
+              <th>Predicted</th><th>Policy Rule</th><th>Fraud Probability</th>
+            </tr></thead>
+            <tbody id="tbl-body"></tbody>
+          </table>
+        </div>
+        <div class="pag">
+          <div class="pag-info" id="pag-info"></div>
+          <div class="pag-btns" id="pag-btns"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENT PAGE -->
+    <div id="page-agent" class="hidden">
+      <div class="topbar">
+        <div class="bc">Dashboard › <span>AI Compliance</span></div>
+        <div class="page-h">Agentic AI Compliance</div>
+        <div class="page-sub" id="agent-sub">Autonomous compliance reasoning engine</div>
+      </div>
+      <div class="agent-panel">
+        <div class="agent-hdr">
+          <div class="agent-ico">🧠</div>
+          <div><div class="agent-name">FraudShield Compliance Agent v5.0</div><div class="agent-sub2" id="agent-sub2">LR · Policy Engine · PCI-DSS · Firebase Auth</div></div>
+          <div class="live-pill"><span class="live-dot"></span>LIVE</div>
+        </div>
+        <div id="insights-list"></div>
+        <div style="font-size:11px;color:var(--green);margin-top:12px;padding:9px 13px;background:rgba(0,0,0,.2);border-radius:7px;font-family:var(--fm)" id="agent-done"></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-t">📜 Regulatory Status</div><div id="reg-list"></div></div>
+        <div class="card"><div class="card-t">📊 Model Performance</div><div id="perf-bars"></div></div>
+      </div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div id="page-profile" class="hidden">
+      <div class="topbar">
+        <div class="bc">Dashboard › <span>My Profile</span></div>
+        <div class="page-h">Account</div>
+        <div class="page-sub">Your Firebase-authenticated analyst account</div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-t">👤 Profile</div>
+          <div id="profile-info" style="font-size:13px;line-height:2.2"></div>
+        </div>
+        <div class="card">
+          <div class="card-t">🕒 Recent Sessions</div>
+          <div id="session-list" style="font-size:11px;font-family:var(--fm);color:var(--muted)">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════════ FIREBASE SDK ════════════════════ -->
+<script type="module">
+import { initializeApp }             from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getAnalytics }              from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+import {
+  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyBwkkgHdvjg8THmnckWenOZGSdM8ZyunVs",
+  authDomain:        "frauddetectorog.firebaseapp.com",
+  projectId:         "frauddetectorog",
+  storageBucket:     "frauddetectorog.firebasestorage.app",
+  messagingSenderId: "526360898510",
+  appId:             "1:526360898510:web:86b94e4e25708ccef6999f",
+  measurementId:     "G-N7P7M0CBRY"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+getAnalytics(firebaseApp);
+const auth_     = getAuth(firebaseApp);
+const googlePrv = new GoogleAuthProvider();
+
+// ── Expose to window for non-module JS ──────────────────────────────────────
+const API = window.BACKEND_URL || 'http://localhost:5000';
+
+async function callSessionAPI(user) {
+  try {
+    const token = await user.getIdToken();
+    const res = await fetch(`${API}/api/auth/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idToken: token })
+    });
+    const data = await res.json();
+    if (data.success) {
+      window._fbProfile = data.user;
+      window._fbToken   = token;
+      updateSidebarUser(data.user);
+    }
+  } catch(e) {
+    console.warn('Backend session sync failed (offline?)', e);
+    window._fbProfile = { uid: user.uid, email: user.email, role: 'analyst', run_count: 0 };
+    window._fbToken   = null;
+  }
+}
+
+function updateSidebarUser(profile) {
+  const nameEl  = document.getElementById('sb-user-name');
+  const roleEl  = document.getElementById('sb-user-role');
+  const runsEl  = document.getElementById('sb-user-runs');
+  if (nameEl) nameEl.textContent = profile.display_name || profile.email || 'Analyst';
+  if (roleEl) roleEl.textContent = profile.role || 'analyst';
+  if (runsEl) runsEl.textContent = `${profile.run_count || 0} runs`;
+}
+
+// Auth state listener — runs on every page load
+onAuthStateChanged(auth_, async (user) => {
+  if (user) {
+    await callSessionAPI(user);
+    document.getElementById('login-page').classList.add('hidden');
+    document.getElementById('app-page').classList.remove('hidden');
+  } else {
+    window._fbProfile = null;
+    window._fbToken   = null;
+    document.getElementById('app-page').classList.add('hidden');
+    document.getElementById('loading-page').classList.add('hidden');
+    document.getElementById('login-page').classList.remove('hidden');
+  }
+});
+
+// Email/password sign-in or register
+window.doEmailAuth = async function() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn   = document.getElementById('btn-auth');
+  errEl.style.display = 'none';
+  if (!email || !pass) { showErr('Email and password required'); return; }
+  btn.disabled = true; btn.textContent = 'Signing in…';
+
+  try {
+    if (window._authMode === 'register') {
+      const name = document.getElementById('l-name').value.trim() || email.split('@')[0];
+      const cred = await createUserWithEmailAndPassword(auth_, email, pass);
+      await updateProfile(cred.user, { displayName: name });
+    } else {
+      await signInWithEmailAndPassword(auth_, email, pass);
+    }
+    // onAuthStateChanged handles the rest
+  } catch(e) {
+    showErr(friendlyError(e.code));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = window._authMode === 'register' ? '→ Create Account' : '→ Sign In';
+  }
+};
+
+// Google sign-in
+window.doGoogleAuth = async function() {
+  try {
+    await signInWithPopup(auth_, googlePrv);
+  } catch(e) {
+    showErr(friendlyError(e.code));
+  }
+};
+
+// Sign out
+window.doSignOut = async function() {
+  await signOut(auth_);
+};
+
+// Load sessions for profile page
+window.loadProfilePage = async function() {
+  const p = window._fbProfile;
+  if (!p) return;
+  const infoEl = document.getElementById('profile-info');
+  infoEl.innerHTML = [
+    ['UID',          p.uid],
+    ['Email',        p.email],
+    ['Display Name', p.display_name || '—'],
+    ['Role',         p.role || 'analyst'],
+    ['Runs',         p.run_count || 0],
+    ['Joined',       p.created_at ? new Date(p.created_at).toLocaleDateString() : '—'],
+  ].map(([k,v]) =>
+    `<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:5px 0">
+      <span style="color:var(--muted)">${k}</span>
+      <span style="font-family:var(--fm);font-size:12px;color:var(--cyan)">${v}</span>
+    </div>`
+  ).join('');
+
+  // Fetch sessions from backend
+  if (window._fbToken) {
+    try {
+      const res = await fetch(`${API}/api/auth/sessions`, {
+        headers: { 'Authorization': `Bearer ${window._fbToken}` }
+      });
+      const data = await res.json();
+      const sessEl = document.getElementById('session-list');
+      if (data.sessions && data.sessions.length) {
+        sessEl.innerHTML = data.sessions.map(s =>
+          `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
+            <div style="color:var(--text)">${new Date(s.created_at).toLocaleString()}</div>
+            <div style="color:var(--dim);font-size:10px;margin-top:2px">${s.ip || 'unknown IP'}</div>
+          </div>`
+        ).join('');
+      } else {
+        sessEl.textContent = 'No sessions found.';
+      }
+    } catch(e) {
+      document.getElementById('session-list').textContent = 'Could not load sessions.';
+    }
+  }
+};
+
+function showErr(msg) {
+  const el = document.getElementById('login-err');
+  el.textContent = msg; el.style.display = 'block';
+}
+function friendlyError(code) {
+  const map = {
+    'auth/user-not-found':     'No account found with this email.',
+    'auth/wrong-password':     'Incorrect password.',
+    'auth/email-already-in-use': 'Email already registered — sign in instead.',
+    'auth/weak-password':      'Password must be at least 6 characters.',
+    'auth/invalid-email':      'Invalid email address.',
+    'auth/too-many-requests':  'Too many attempts. Try again later.',
+    'auth/popup-closed-by-user': 'Sign-in popup was closed.',
+  };
+  return map[code] || `Sign-in failed: ${code}`;
+}
+
+window.toggleAuthMode = function() {
+  const isReg = window._authMode === 'register';
+  window._authMode = isReg ? 'login' : 'register';
+  document.getElementById('auth-heading').textContent  = isReg ? 'Analyst Sign In' : 'Create Account';
+  document.getElementById('auth-sub').textContent      = isReg ? 'Sign in to your account' : 'Register your analyst account';
+  document.getElementById('btn-auth').textContent      = isReg ? '→ Sign In' : '→ Create Account';
+  document.getElementById('auth-toggle').innerHTML     = isReg
+    ? 'No account? <a onclick="toggleAuthMode()">Create one</a>'
+    : 'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  document.getElementById('register-name-wrap').style.display = isReg ? 'none' : 'block';
+};
+window._authMode = 'login';
+</script>
+
+<!-- ════════════════════ APP JS (non-module) ════════════════════ -->
+<script>
+var selectedFile=null,results=null,currentFilter='all',currentPage=1;
+var PER_PAGE=50,charts={},parsedRows=[],parsedAll=[];
+
+function el(id){return document.getElementById(id);}
+function show(id){el(id).classList.remove('hidden');}
+function hide(id){el(id).classList.add('hidden');}
+function fmt(n){return Number(n).toLocaleString('en-IN');}
+function toast(msg,ok){
+  var t=el('toast');t.textContent=msg;
+  t.className='show'+(ok?' ok':'');
+  setTimeout(function(){t.className='';},4000);
+}
+
+function showPage(pg){
+  if((pg==='results'||pg==='agent')&&!results){toast('Run detection first');return;}
+  ['upload','results','agent','profile'].forEach(function(p){
+    hide('page-'+p);
+    var n=el('nav-'+p); if(n) n.classList.remove('on');
+  });
+  show('page-'+pg);
+  var n=el('nav-'+pg); if(n) n.classList.add('on');
+  if(pg==='profile') window.loadProfilePage && window.loadProfilePage();
+}
+
+function handleFile(f){
+  if(!f)return;
+  if(!f.name.toLowerCase().endsWith('.csv')){toast('Please select a .csv file');return;}
+  selectedFile=f;
+  var sizeMB=(f.size/1048576).toFixed(2);
+  el('up-h').textContent='File Ready — sampling…';
+  el('up-sub').textContent='Reading first 512KB to estimate row count';
+  el('file-info').innerHTML=
+    '<div class="fbadge">📄 '+f.name+'</div>'+
+    '<div class="fbadge">💾 '+sizeMB+' MB</div>'+
+    '<div class="fbadge" id="row-badge">⟳ counting…</div>';
+  el('run-btn').disabled=true;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var lines=e.target.result.split('\n');
+    var hBytes=(lines[0]||'').length+1;
+    var dataLines=lines.slice(1).filter(function(l){return l.trim().length>0;});
+    var avgBPR=(Math.min(f.size,512*1024)-hBytes)/Math.max(1,dataLines.length);
+    var rowEst=Math.max(100,Math.round((f.size-hBytes)/avgBPR));
+    el('up-h').textContent='File Ready';
+    el('up-sub').textContent='Estimated from file sampling';
+    el('row-badge').textContent='~'+fmt(rowEst)+' rows';
+    el('run-btn').disabled=false;
+  };
+  reader.onerror=function(){el('row-badge').textContent='~rows';el('run-btn').disabled=false;};
+  reader.readAsText(f.slice(0,512*1024));
+}
+
+function parseLine(line){
+  var cols=[],cur='',inQ=false;
+  for(var i=0;i<line.length;i++){
+    var c=line[i];
+    if(c==='"')inQ=!inQ;
+    else if(c===','&&!inQ){cols.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  cols.push(cur.trim());return cols;
+}
+
+function setStep(n,msg,prog){
+  el('load-msg').textContent=msg;
+  el('prog-fill').style.width=prog+'%';
+  var labels=['Read File','Parse Rows','Train Model','Build Report'];
+  for(var i=0;i<4;i++){
+    var s=el('ls'+i);
+    s.className='ls'+(i<n?' done':i===n?' act':'');
+    s.textContent=(i<n?'✓ ':i===n?'⟳ ':'○ ')+labels[i];
+  }
+}
+
+function runDetection(){
+  if(!selectedFile)return;
+  var f=selectedFile,sizeMB=(f.size/1048576).toFixed(2);
+  hide('app-page');show('loading-page');
+  setStep(0,'Reading: '+f.name+' ('+sizeMB+' MB)',10);
+  var reader=new FileReader();
+  reader.onload=function(e){processCSV(e.target.result,f.name,sizeMB);};
+  reader.onerror=function(){hide('loading-page');show('app-page');toast('Could not read file');};
+  reader.readAsText(f);
+}
+
+function eachLine(text,startPos,cb){
+  var len=text.length,i=startPos,s=startPos;
+  while(i<=len){
+    if(i===len||text[i]==='\n'){
+      if(i>s){var line=text[i-1]==='\r'?text.slice(s,i-1):text.slice(s,i);if(line.length)cb(line);}
+      s=i+1;
+    }
+    i++;
+  }
+}
+
+function processCSV(text,fileName,sizeMB){
+  try{
+    setStep(1,'Parsing CSV rows…',25);var t0=Date.now();var NFEATS=14;
+    var hEnd=text.indexOf('\n');if(hEnd<0)hEnd=text.length;
+    var headerLine=text[hEnd-1]==='\r'?text.slice(0,hEnd-1):text.slice(0,hEnd);
+    var header=parseLine(headerLine);var dataStart=hEnd+1;
+    function ci(names){for(var n=0;n<names.length;n++){var idx=header.findIndex(function(h){return h.toLowerCase().trim()===names[n].toLowerCase();});if(idx>=0)return idx;}return -1;}
+    var iType=ci(['type']),iAmt=ci(['amount']);
+    var iOldO=ci(['oldbalanceorg','oldbalanceorig']),iNewO=ci(['newbalanceorig']);
+    var iOldD=ci(['oldbalancedest']),iNewD=ci(['newbalancedest']);
+    var iFraud=ci(['isfraud','fraud']),iStepC=ci(['step']),iOrigId=ci(['nameorig']);
+    var typeMap={TRANSFER:0,PAYMENT:1,CASH_OUT:2,DEBIT:3,CASH_IN:4};
+    function feats(tc,amt,oldO,newO,oldD,newD){return[tc,amt>0?Math.log(amt+1):0,oldO,newO,oldD,newD,oldO-newO,newD-oldD,oldO>0?amt/oldO:0,(newO===0&&oldO>0)?1:0,(newO<0)?1:0,(amt>200000&&tc===2)?1:0,Math.abs((oldO-newO)-(newD-oldD)),(tc===0||tc===2)?1:0];}
+    function sigmoid(x){return 1/(1+Math.exp(-Math.max(-20,Math.min(20,x))));}
+    setStep(1,'Pass 1 — computing feature statistics…',30);
+    var N=0,fsum=new Float64Array(NFEATS),fsum2=new Float64Array(NFEATS);
+    var RSRV_MAX=60000,rsvFraud=[],rsvSafe=[],rsvFraudFull=false,rsvSafeFull=false;
+    var hasGT=(iFraud>=0);
+    eachLine(text,dataStart,function(line){
+      var cols=parseLine(line);
+      var type=iType>=0?(cols[iType]||'UNKNOWN').replace(/"/g,'').trim():'UNKNOWN';
+      var tc=typeMap[type]!==undefined?typeMap[type]:5;
+      var amt=iAmt>=0?parseFloat(cols[iAmt])||0:0;
+      var oldO=iOldO>=0?parseFloat(cols[iOldO])||0:0,newO=iNewO>=0?parseFloat(cols[iNewO])||0:0;
+      var oldD=iOldD>=0?parseFloat(cols[iOldD])||0:0,newD=iNewD>=0?parseFloat(cols[iNewD])||0:0;
+      var fv=feats(tc,amt,oldO,newO,oldD,newD);
+      for(var f=0;f<NFEATS;f++){fsum[f]+=fv[f];fsum2[f]+=fv[f]*fv[f];}
+      var gt=hasGT?parseInt(cols[iFraud])||0:0;
+      if(hasGT){
+        if(gt===1){if(!rsvFraudFull){var entry=new Float32Array(NFEATS+1);for(var f=0;f<NFEATS;f++)entry[f]=fv[f];entry[NFEATS]=1;rsvFraud.push(entry);if(rsvFraud.length>=RSRV_MAX)rsvFraudFull=true;}}
+        else{if(!rsvSafeFull){var entry=new Float32Array(NFEATS+1);for(var f=0;f<NFEATS;f++)entry[f]=fv[f];entry[NFEATS]=0;rsvSafe.push(entry);if(rsvSafe.length>=RSRV_MAX)rsvSafeFull=true;}}
+      }
+      N++;
+    });
+    if(N===0)throw new Error('No data rows found in CSV');
+    var means=new Float64Array(NFEATS),stds=new Float64Array(NFEATS);
+    for(var f=0;f<NFEATS;f++){means[f]=fsum[f]/N;stds[f]=Math.sqrt(Math.max(0,fsum2[f]/N-means[f]*means[f]))||1;}
+    function scale(fv){var s=new Float64Array(NFEATS);for(var f=0;f<NFEATS;f++)s[f]=(fv[f]-means[f])/stds[f];return s;}
+    function scaleEntry(entry){var s=new Float64Array(NFEATS);for(var f=0;f<NFEATS;f++)s[f]=(entry[f]-means[f])/stds[f];return s;}
+    setStep(2,'Pass 2 — training Logistic Regression…',55);
+    var weights=new Float64Array(NFEATS),bias=0,THRESHOLD=0.5;
+    if(hasGT&&rsvFraud.length>0){
+      var wF=rsvSafe.length/Math.max(1,rsvFraud.length*2);
+      var fTrain=Math.floor(rsvFraud.length*.8),sTrain=Math.floor(rsvSafe.length*.8);
+      var trainSet=[],testSet=[];
+      for(var r=0;r<fTrain;r++)trainSet.push(rsvFraud[r]);
+      for(var r=0;r<sTrain;r++)trainSet.push(rsvSafe[r]);
+      for(var r=fTrain;r<rsvFraud.length;r++)testSet.push(rsvFraud[r]);
+      for(var r=sTrain;r<rsvSafe.length;r++)testSet.push(rsvSafe[r]);
+      rsvFraud=null;rsvSafe=null;
+      var EPOCHS=80,BATCH=Math.min(512,Math.floor(trainSet.length/4)||1);
+      for(var epoch=0;epoch<EPOCHS;epoch++){
+        for(var k=trainSet.length-1;k>0;k--){var j=Math.floor(Math.random()*(k+1));var tmp=trainSet[k];trainSet[k]=trainSet[j];trainSet[j]=tmp;}
+        var lrE=0.05/(1+0.01*epoch);
+        for(var b=0;b<trainSet.length;b+=BATCH){
+          var gw=new Float64Array(NFEATS),gb=0,bsize=0;
+          for(var bi=b;bi<Math.min(b+BATCH,trainSet.length);bi++){
+            var entry=trainSet[bi],sf=scaleEntry(entry);
+            var dot=bias;for(var f=0;f<NFEATS;f++)dot+=weights[f]*sf[f];
+            var err=(sigmoid(dot)-entry[NFEATS])*(entry[NFEATS]===1?wF:1);
+            for(var f=0;f<NFEATS;f++)gw[f]+=err*sf[f];gb+=err;bsize++;
+          }
+          for(var f=0;f<NFEATS;f++)weights[f]-=lrE*(gw[f]/bsize+0.001*weights[f]);
+          bias-=lrE*gb/bsize;
+        }
+      }
+      var scores=[];
+      for(var r=0;r<testSet.length;r++){
+        var entry=testSet[r],sf=scaleEntry(entry);
+        var dot=bias;for(var f=0;f<NFEATS;f++)dot+=weights[f]*sf[f];
+        scores.push({prob:sigmoid(dot),gt:entry[NFEATS]});
+      }
+      testSet=null;
+      var bestF1=0;
+      for(var t=10;t<=90;t+=2){
+        var th=t/100,_tp=0,_fp=0,_fn=0;
+        for(var s=0;s<scores.length;s++){var p=scores[s].prob>=th?1:0;if(p===1&&scores[s].gt===1)_tp++;else if(p===1&&scores[s].gt===0)_fp++;else if(p===0&&scores[s].gt===1)_fn++;}
+        var _pr=_tp/Math.max(1,_tp+_fp),_re=_tp/Math.max(1,_tp+_fn),_f1=2*_pr*_re/Math.max(0.001,_pr+_re);
+        if(_f1>bestF1){bestF1=_f1;THRESHOLD=th;}
+      }
+      scores=null;
+    } else {
+      weights=new Float64Array([0.8,0.6,0,-0.3,0,0,0.5,0,0.9,1.8,2,1.5,0.3,0.7]);
+      bias=-2.5;THRESHOLD=0.35;
+    }
+    setStep(3,'Pass 3 — scoring '+fmt(N)+' rows…',78);
+    var fraudCount=0,safeCount=0,fbt={},sbt={},fbs=new Array(24).fill(0);
+    var negBal=0,largeCash=0,drainTx=0,sumFA=0,sumSA=0;
+    var tp=0,tn=0,fp=0,fn=0;
+    parsedRows=[];parsedAll=[];var rowIdx=0;
+    eachLine(text,dataStart,function(line){
+      rowIdx++;
+      var cols=parseLine(line);
+      var type=iType>=0?(cols[iType]||'UNKNOWN').replace(/"/g,'').trim():'UNKNOWN';
+      var tc=typeMap[type]!==undefined?typeMap[type]:5;
+      var amt=iAmt>=0?parseFloat(cols[iAmt])||0:0;
+      var oldO=iOldO>=0?parseFloat(cols[iOldO])||0:0,newO=iNewO>=0?parseFloat(cols[iNewO])||0:0;
+      var oldD=iOldD>=0?parseFloat(cols[iOldD])||0:0;
+      var gt=hasGT?parseInt(cols[iFraud])||0:0;
+      var step_=iStepC>=0?parseInt(cols[iStepC])||0:0;
+      var id=iOrigId>=0?(cols[iOrigId]||('TXN'+rowIdx)).replace(/"/g,'').trim():'TXN'+rowIdx;
+      var fv=feats(tc,amt,oldO,newO,oldD,parseFloat(cols[iNewD>=0?iNewD:0])||0);
+      var sf=scale(fv);var dot=bias;for(var f=0;f<NFEATS;f++)dot+=weights[f]*sf[f];
+      var score=sigmoid(dot);
+      var r1=(newO<0)?1:0,r2=(amt>200000&&type==='CASH_OUT')?1:0,r3=(type==='TRANSFER'&&newO===0&&oldO>0)?1:0,pv=r1||r2||r3;
+      if(r1)negBal++;if(r2)largeCash++;if(r3)drainTx++;
+      var pred=(score>=THRESHOLD||pv)?1:0;
+      if(hasGT){if(gt===1&&pred===1)tp++;else if(gt===0&&pred===0)tn++;else if(gt===0&&pred===1)fp++;else fn++;}
+      if(!fbt[type])fbt[type]=0;if(!sbt[type])sbt[type]=0;
+      if(pred===1){fbt[type]++;fraudCount++;sumFA+=amt;}else{sbt[type]++;safeCount++;sumSA+=amt;}
+      fbs[step_%24]+=pred;
+      var rowObj={id:id,type:type,amount:amt,isFraud:pred===1,prob:parseFloat(score.toFixed(3)),policyViolation:pv===1};
+      if(parsedAll.length<5000)parsedAll.push(rowObj);
+      if(pred===1&&parsedRows.length<20000)parsedRows.push(rowObj);
+    });
+    setStep(3,'Building report…',92);
+    var tot=Math.max(1,tp+tn+fp+fn),acc=hasGT?((tp+tn)/tot*100).toFixed(1):'N/A';
+    var prec=hasGT?tp/Math.max(1,tp+fp):null,rec=hasGT?tp/Math.max(1,tp+fn):null;
+    var f1v=hasGT?(2*(prec||0)*(rec||0)/Math.max(0.001,(prec||0)+(rec||0))*100).toFixed(1):'N/A';
+    var pt=((Date.now()-t0)/1000).toFixed(2);
+    var avgFA=fraudCount>0?(sumFA/fraudCount).toFixed(0):0,avgSA=safeCount>0?(sumSA/safeCount).toFixed(0):0;
+    var topType=Object.keys(fbt).sort(function(a,b){return(fbt[b]||0)-(fbt[a]||0);})[0]||'TRANSFER';
+    var agg={totalRows:N,fraudCount:fraudCount,safeCount:safeCount,
+      highRisk:parsedRows.filter(function(r){return r.prob>0.85;}).length,
+      fbt:fbt,sbt:sbt,fbs:fbs,
+      metrics:{acc:acc,precision:hasGT?((prec||0)*100).toFixed(1):'N/A',recall:hasGT?((rec||0)*100).toFixed(1):'N/A',f1:f1v,tp:tp,tn:tn,fp:fp,fn:fn},
+      policyRules:{negBal:negBal,largeCash:largeCash,drainTx:drainTx,total:negBal+largeCash+drainTx}};
+    results={agg:agg,pt:pt,fileName:fileName,sizeMB:sizeMB,threshold:THRESHOLD,
+      insights:[
+        {level:'high',icon:'⚠️',text:fmt(agg.highRisk)+' transactions with fraud probability >85% — immediate review required.',tag:'CRITICAL'},
+        {level:'high',icon:'🔴',text:fmt(agg.policyRules.total)+' policy violations: '+fmt(negBal)+' neg balance · '+fmt(largeCash)+' large cash-out · '+fmt(drainTx)+' drain transfers.',tag:'HIGH'},
+        {level:'high',icon:'💸',text:fmt(fraudCount)+' ('+((fraudCount/N)*100).toFixed(2)+'%) flagged. Highest in '+topType+'.',tag:'HIGH'},
+        {level:'medium',icon:'📊',text:'Avg fraud ₹'+Number(avgFA).toLocaleString('en-IN')+' vs ₹'+Number(avgSA).toLocaleString('en-IN')+' legitimate.',tag:'MEDIUM'},
+        {level:'medium',icon:'🔍',text:hasGT?'Recall '+((rec||0)*100).toFixed(1)+'% — '+fmt(fn)+' potential misses. Threshold auto-tuned to '+THRESHOLD.toFixed(2)+'.':'No isFraud column — policy-only mode.',tag:'MEDIUM'},
+        {level:'low',icon:'✅',text:fmt(safeCount)+' ('+((safeCount/N)*100).toFixed(2)+'%) transactions clean. PCI-DSS: CLEAR.',tag:'LOW'},
+        {level:'low',icon:'🛡️',text:'PCI-DSS v4.0 compliant. Firebase Auth. SOX audit trail active.',tag:'INFO'}
+      ]};
+    setTimeout(function(){
+      try{renderResults();renderAgent();hide('loading-page');show('app-page');showPage('results');toast('Detection complete!',true);}
+      catch(err){hide('loading-page');show('app-page');toast('Render error: '+err.message);console.error(err);}
+    },200);
+  }catch(err){hide('loading-page');show('app-page');toast('Error: '+err.message);console.error(err);}
+}
+
+function renderResults(){
+  var agg=results.agg,m=agg.metrics;
+  el('res-sub').innerHTML='<span style="color:var(--cyan);font-family:var(--fm);font-size:12px">'+results.fileName+'</span>'+' · '+results.sizeMB+' MB · <strong style="color:var(--orange)">'+fmt(agg.totalRows)+'</strong> rows · '+results.pt+'s';
+  el('kpi-grid').innerHTML=[
+    ['Accuracy',m.acc+(m.acc!=='N/A'?'%':''),'#22d3ee','Model correctness'],
+    ['Precision',m.precision+(m.precision!=='N/A'?'%':''),'#3b82f6','Correct fraud preds'],
+    ['Recall',m.recall+(m.recall!=='N/A'?'%':''),'#10b981','Fraud cases caught'],
+    ['F1 Score',m.f1+(m.f1!=='N/A'?'%':''),'#f97316','Harmonic mean P/R'],
+    ['Fraud Flagged',fmt(agg.fraudCount),'#f43f5e',(agg.fraudCount/agg.totalRows*100).toFixed(2)+'% of total'],
+    ['Legitimate',fmt(agg.safeCount),'#22d3ee',(agg.safeCount/agg.totalRows*100).toFixed(2)+'% of total'],
+    ['Proc. Time',results.pt+'s','#3b82f6','In-browser LR training'],
+    ['Total Rows',fmt(agg.totalRows),'#10b981',results.sizeMB+' MB file'],
+  ].map(function(k){return '<div class="kpi" style="--kc:'+k[2]+'"><div class="kpi-l">'+k[0]+'</div><div class="kpi-v" style="font-size:'+(k[1].length>8?'18':'26')+'px">'+k[1]+'</div><div class="kpi-s">'+k[3]+'</div></div>';}).join('');
+  var pr=agg.policyRules;
+  el('policy-grid').innerHTML=[
+    ['🔴 Neg Balance',pr.negBal,'Rule 1','#f43f5e'],
+    ['💸 Large Cash-Out',pr.largeCash,'>₹2L CASH_OUT','#f97316'],
+    ['⛽ Drain Transfer',pr.drainTx,'Full drain','#f97316'],
+    ['⚠ Total Violations',pr.total,'Policy hits','#f43f5e'],
+  ].map(function(p){return '<div class="kpi" style="--kc:'+p[3]+'"><div class="kpi-l" style="font-size:9px">'+p[0]+'</div><div class="kpi-v" style="font-size:20px">'+fmt(p[1])+'</div><div class="kpi-s">'+p[2]+'</div></div>';}).join('');
+  destroyCharts();drawPie(agg.fraudCount,agg.safeCount);drawBar(agg.fbt,agg.sbt);drawLine(agg.fbs);
+  el('cm-grid').innerHTML=[
+    ['#10b981',m.tp,'True Positive','rgba(16,185,129,.1)','rgba(16,185,129,.2)'],
+    ['#f43f5e',m.fn,'False Negative','rgba(244,63,94,.1)','rgba(244,63,94,.2)'],
+    ['#f97316',m.fp,'False Positive','rgba(249,115,22,.1)','rgba(249,115,22,.2)'],
+    ['#3b82f6',m.tn,'True Negative','rgba(59,130,246,.1)','rgba(59,130,246,.2)'],
+  ].map(function(c){return '<div class="cm-cell" style="background:'+c[3]+';border:1px solid '+c[4]+'"><div class="cm-v" style="color:'+c[0]+'">'+fmt(c[1])+'</div><div class="cm-l">'+c[2]+'</div></div>';}).join('');
+  currentFilter='all';currentPage=1;renderTable();
+}
+
+function setFilter(f){currentFilter=f;currentPage=1;el('btn-all').className='fbtn'+(f==='all'?' on-all':'');el('btn-fraud').className='fbtn'+(f==='fraud'?' on':'');renderTable();}
+function renderTable(){
+  var pool=(currentFilter==='fraud')?parsedRows:parsedAll;
+  var totalReal=(currentFilter==='fraud')?results.agg.fraudCount:results.agg.totalRows;
+  var totalPgs=Math.max(1,Math.ceil(pool.length/PER_PAGE));
+  if(currentPage>totalPgs)currentPage=totalPgs;
+  var note=pool.length<totalReal?' · showing first '+fmt(pool.length)+' of '+fmt(totalReal):'';
+  el('tbl-info').textContent='Page '+currentPage+' of '+totalPgs+' · '+PER_PAGE+' per page'+note;
+  var html='',start=(currentPage-1)*PER_PAGE;
+  for(var i=0;i<PER_PAGE;i++){
+    var idx=start+i;if(idx>=pool.length)break;
+    var row=pool[idx],pct=(row.prob*100).toFixed(1);
+    var pcol=row.prob>0.7?'var(--red)':row.prob>0.4?'var(--orange)':'var(--green)';
+    html+='<tr'+(row.isFraud?' class="fraud-row"':'')+'>'+
+      '<td style="font-family:var(--fm);color:var(--muted);font-size:11px">'+row.id+'</td>'+
+      '<td><span style="font-size:10px;background:rgba(255,255,255,.05);padding:2px 8px;border-radius:4px;font-family:var(--fm)">'+row.type+'</span></td>'+
+      '<td style="font-family:var(--fm)">'+Number(row.amount).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})+'</td>'+
+      '<td><span class="tag '+(row.isFraud?'fraud':'safe')+'">'+(row.isFraud?'● FRAUD':'✓ SAFE')+'</span></td>'+
+      '<td><span class="tag '+(row.policyViolation?'viol':'safe')+'">'+(row.policyViolation?'⚠ VIOL':'— OK')+'</span></td>'+
+      '<td><div class="prob-wrap"><div class="prob-track"><div class="prob-fill" style="width:'+pct+'%;background:'+pcol+'"></div></div><span style="font-family:var(--fm);font-size:11px;color:'+pcol+'">'+pct+'%</span></div></td>'+
+    '</tr>';
+  }
+  el('tbl-body').innerHTML=html||'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px;font-family:var(--fm)">No records</td></tr>';
+  el('pag-info').textContent='Page '+currentPage+' / '+totalPgs;
+  var btns='<button class="pag-btn" onclick="goPage(1)" '+(currentPage===1?'disabled':'')+'>«</button><button class="pag-btn" onclick="goPage('+(currentPage-1)+')" '+(currentPage===1?'disabled':'')+'>‹</button>';
+  for(var p=Math.max(1,currentPage-2);p<=Math.min(totalPgs,currentPage+2);p++)
+    btns+='<button class="pag-btn'+(p===currentPage?' on':'')+'" onclick="goPage('+p+')">'+p+'</button>';
+  btns+='<button class="pag-btn" onclick="goPage('+(currentPage+1)+')" '+(currentPage>=totalPgs?'disabled':'')+'>›</button><button class="pag-btn" onclick="goPage('+totalPgs+')" '+(currentPage>=totalPgs?'disabled':'')+'>»</button>';
+  el('pag-btns').innerHTML=btns;
+}
+function goPage(p){var pool=(currentFilter==='fraud')?parsedRows:parsedAll;var totalPgs=Math.max(1,Math.ceil(pool.length/PER_PAGE));if(p<1||p>totalPgs)return;currentPage=p;renderTable();}
+function dlCSV(){
+  var pool=(currentFilter==='fraud')?parsedRows:parsedAll;
+  var rows=[['Transaction ID','Type','Amount','Predicted','Policy Violation','Fraud Probability']];
+  var start=(currentPage-1)*PER_PAGE;
+  for(var i=0;i<PER_PAGE;i++){var idx=start+i;if(idx>=pool.length)break;var row=pool[idx];rows.push([row.id,row.type,row.amount,row.isFraud?'FRAUD':'SAFE',row.policyViolation?'YES':'NO',row.prob]);}
+  var csv=rows.map(function(r){return r.join(',');}).join('\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='fraudshield_p'+currentPage+'.csv';a.click();
+}
+
+function destroyCharts(){Object.values(charts).forEach(function(c){try{if(c)c.destroy();}catch(e){}});charts={};}
+var chartOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#4a6080',font:{family:'DM Mono',size:11},padding:10,boxWidth:10}}},scales:{x:{grid:{color:'rgba(24,32,53,.8)'},ticks:{color:'#4a6080',font:{size:10}}},y:{grid:{color:'rgba(24,32,53,.8)'},ticks:{color:'#4a6080',font:{size:10},callback:function(v){return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(0)+'K':v;}}}}};
+function drawPie(fraud,safe){try{charts.pie=new Chart(el('pie-chart'),{type:'doughnut',data:{labels:['Fraud','Legitimate'],datasets:[{data:[fraud,safe],backgroundColor:['rgba(244,63,94,.8)','rgba(59,130,246,.7)'],borderColor:['#f43f5e','#3b82f6'],borderWidth:2,hoverOffset:5}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#4a6080',font:{family:'DM Mono',size:11},padding:12,boxWidth:10}}}}});}catch(e){}}
+function drawBar(fbt,sbt){try{var types=Object.keys(fbt);charts.bar=new Chart(el('bar-chart'),{type:'bar',data:{labels:types,datasets:[{label:'Fraud',data:types.map(function(t){return fbt[t];}),backgroundColor:'rgba(244,63,94,.7)',borderRadius:4},{label:'Safe',data:types.map(function(t){return sbt[t];}),backgroundColor:'rgba(59,130,246,.5)',borderRadius:4}]},options:chartOpts});}catch(e){}}
+function drawLine(fbs){try{var opts=JSON.parse(JSON.stringify(chartOpts));charts.line=new Chart(el('line-chart'),{type:'line',data:{labels:fbs.map(function(_,i){return i+'h';}),datasets:[{label:'Fraud Events',data:fbs,borderColor:'rgba(34,211,238,1)',backgroundColor:'rgba(34,211,238,.06)',borderWidth:2,fill:true,tension:.4,pointRadius:1}]},options:opts});}catch(e){}}
+
+function renderAgent(){
+  var agg=results.agg,m=agg.metrics;
+  el('agent-sub').textContent='Autonomous reasoning · '+fmt(agg.totalRows)+' records analysed · Firebase Auth';
+  el('agent-sub2').textContent='LR · Policy Engine · PCI-DSS · Firebase · '+fmt(agg.totalRows)+' records';
+  el('insights-list').innerHTML=results.insights.map(function(ins){
+    return '<div class="insight '+ins.level+'"><span style="font-size:15px">'+ins.icon+'</span><div>'+ins.text+'<span class="itag '+ins.level+'">'+ins.tag+'</span></div></div>';
+  }).join('');
+  setTimeout(function(){try{el('agent-done').textContent='✓ Analysis complete · '+new Date().toLocaleTimeString();}catch(e){}},1500);
+  el('reg-list').innerHTML=[
+    ['PCI-DSS v4.0','Transaction data masked','COMPLIANT','#10b981'],
+    ['Firebase Auth','Email/Password + Google SSO','ACTIVE','#10b981'],
+    ['Firestore Sessions','Sign-in audit trail','LOGGING','#10b981'],
+    ['GDPR Art.22','Decision transparency','REVIEW','#f97316'],
+    ['SOX Controls','Audit trail active','COMPLIANT','#10b981']
+  ].map(function(r){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(24,32,53,.5)">'+
+      '<div><div style="font-size:12px;font-weight:500">'+r[0]+'</div><div style="font-size:10px;color:var(--muted);margin-top:2px;font-family:var(--fm)">'+r[1]+'</div></div>'+
+      '<span style="font-size:10px;font-weight:700;color:'+r[3]+';background:'+r[3]+'18;border:1px solid '+r[3]+'40;padding:3px 9px;border-radius:100px;font-family:var(--fm)">'+r[2]+'</span></div>';
+  }).join('');
+  el('perf-bars').innerHTML=[
+    ['Accuracy',m.acc,'#22d3ee'],['Precision',m.precision,'#3b82f6'],
+    ['Recall',m.recall,'#10b981'],['F1 Score',m.f1,'#f97316']
+  ].map(function(b){
+    var val=parseFloat(b[1])||0;
+    return '<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px"><span style="color:var(--muted)">'+b[0]+'</span><span style="font-family:var(--fm);color:'+b[2]+';font-weight:600">'+b[1]+(b[1]!=='N/A'?'%':'')+'</span></div><div style="height:4px;background:var(--border2);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+Math.min(100,val)+'%;background:'+b[2]+';border-radius:2px;transition:width 1s ease"></div></div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# render.yaml — drop in repo root for one-click deploy on Render.com
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: fraudshield-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      # ── Firebase Service Account ────────────────────────────────────────────
+      # Get these from: Firebase Console → Project Settings → Service Accounts
+      # → Generate new private key → open the JSON and copy values below
+      - key: FIREBASE_PROJECT_ID
+        sync: false          # Set manually in Render dashboard
+
+      - key: FIREBASE_PRIVATE_KEY_ID
+        sync: false
+
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false          # Paste the full -----BEGIN RSA PRIVATE KEY----- block
+                             # Render stores \n literally — our code handles this
+
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false          # looks like: firebase-adminsdk-xxxx@project.iam.gserviceaccount.com
+
+      - key: FIREBASE_CLIENT_ID
+        sync: false
+
+      - key: FIREBASE_CLIENT_CERT_URL
+        sync: false
+
+      # ── Python version ────────────────────────────────────────────────────
+      - key: PYTHON_VERSION
+        value: "3.11.0"
